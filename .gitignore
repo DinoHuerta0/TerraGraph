@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Pruebas y lint
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# Secretos
+.env
+*.pem
