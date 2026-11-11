@@ -6,6 +6,6 @@ Closes #
 
 ## Checklist
 - [ ] Local test passed
-- [ ] Branch name follows convention (feature/<issue>-<description>)
+- [ ] Branch name follows convention (<type>/<issue>-<description>)
 - [ ] Commits follow Conventional Commits
 - [ ] Documentation updated (if needed)
