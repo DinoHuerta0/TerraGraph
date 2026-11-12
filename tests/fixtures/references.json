@@ -1,0 +1,372 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.8",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_instance.app[0]",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "app",
+          "index": 0,
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_instance.app[1]",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "app",
+          "index": 1,
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_internet_gateway.gw",
+          "mode": "managed",
+          "type": "aws_internet_gateway",
+          "name": "gw",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_security_group.web",
+          "mode": "managed",
+          "type": "aws_security_group",
+          "name": "web",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_subnet.private[\"a\"]",
+          "mode": "managed",
+          "type": "aws_subnet",
+          "name": "private",
+          "index": "a",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_subnet.private[\"b\"]",
+          "mode": "managed",
+          "type": "aws_subnet",
+          "name": "private",
+          "index": "b",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_vpc.main",
+          "mode": "managed",
+          "type": "aws_vpc",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_instance.app[0]",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "app",
+      "index": 0,
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_instance.app[1]",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "app",
+      "index": 1,
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_internet_gateway.gw",
+      "mode": "managed",
+      "type": "aws_internet_gateway",
+      "name": "gw",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "no-op"
+        ]
+      }
+    },
+    {
+      "address": "aws_security_group.web",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "web",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "update"
+        ]
+      }
+    },
+    {
+      "address": "aws_subnet.private[\"a\"]",
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "private",
+      "index": "a",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_subnet.private[\"b\"]",
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "private",
+      "index": "b",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_vpc.main",
+      "mode": "managed",
+      "type": "aws_vpc",
+      "name": "main",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "no-op"
+        ]
+      }
+    }
+  ],
+  "prior_state": {
+    "format_version": "1.0",
+    "terraform_version": "1.9.8",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "aws_internet_gateway.gw",
+            "mode": "managed",
+            "type": "aws_internet_gateway",
+            "name": "gw",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "schema_version": 0,
+            "values": {}
+          },
+          {
+            "address": "aws_security_group.web",
+            "mode": "managed",
+            "type": "aws_security_group",
+            "name": "web",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "schema_version": 0,
+            "values": {}
+          },
+          {
+            "address": "aws_vpc.main",
+            "mode": "managed",
+            "type": "aws_vpc",
+            "name": "main",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "schema_version": 0,
+            "values": {}
+          },
+          {
+            "address": "data.aws_ami.ubuntu",
+            "mode": "data",
+            "type": "aws_ami",
+            "name": "ubuntu",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "schema_version": 0,
+            "values": {
+              "id": "ami-0abc123"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "configuration": {
+    "provider_config": {
+      "aws": {
+        "name": "aws",
+        "full_name": "registry.terraform.io/hashicorp/aws"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_instance.app",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "app",
+          "provider_config_key": "aws",
+          "expressions": {
+            "ami": {
+              "references": [
+                "data.aws_ami.ubuntu.id",
+                "data.aws_ami.ubuntu"
+              ]
+            },
+            "instance_type": {
+              "constant_value": "t3.micro"
+            },
+            "subnet_id": {
+              "references": [
+                "aws_subnet.private[\"a\"].id",
+                "aws_subnet.private[\"a\"]",
+                "aws_subnet.private"
+              ]
+            },
+            "vpc_security_group_ids": {
+              "references": [
+                "aws_security_group.web.id",
+                "aws_security_group.web"
+              ]
+            },
+            "tags": {
+              "references": [
+                "count.index"
+              ]
+            }
+          },
+          "schema_version": 0,
+          "count_expression": {
+            "constant_value": 2
+          },
+          "depends_on": [
+            "aws_internet_gateway.gw"
+          ]
+        },
+        {
+          "address": "aws_internet_gateway.gw",
+          "mode": "managed",
+          "type": "aws_internet_gateway",
+          "name": "gw",
+          "provider_config_key": "aws",
+          "expressions": {
+            "vpc_id": {
+              "references": [
+                "aws_vpc.main.id",
+                "aws_vpc.main"
+              ]
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "aws_security_group.web",
+          "mode": "managed",
+          "type": "aws_security_group",
+          "name": "web",
+          "provider_config_key": "aws",
+          "expressions": {
+            "vpc_id": {
+              "references": [
+                "aws_vpc.main.id",
+                "aws_vpc.main"
+              ]
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "aws_subnet.private",
+          "mode": "managed",
+          "type": "aws_subnet",
+          "name": "private",
+          "provider_config_key": "aws",
+          "expressions": {
+            "availability_zone": {
+              "references": [
+                "each.key"
+              ]
+            },
+            "cidr_block": {
+              "references": [
+                "each.value"
+              ]
+            },
+            "vpc_id": {
+              "references": [
+                "aws_vpc.main.id",
+                "aws_vpc.main"
+              ]
+            }
+          },
+          "schema_version": 0,
+          "for_each_expression": {
+            "references": [
+              "var.subnets"
+            ]
+          }
+        },
+        {
+          "address": "aws_vpc.main",
+          "mode": "managed",
+          "type": "aws_vpc",
+          "name": "main",
+          "provider_config_key": "aws",
+          "expressions": {
+            "cidr_block": {
+              "constant_value": "10.0.0.0/16"
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "data.aws_ami.ubuntu",
+          "mode": "data",
+          "type": "aws_ami",
+          "name": "ubuntu",
+          "provider_config_key": "aws",
+          "expressions": {
+            "most_recent": {
+              "constant_value": true
+            },
+            "owners": {
+              "constant_value": [
+                "099720109477"
+              ]
+            }
+          },
+          "schema_version": 0
+        }
+      ],
+      "variables": {
+        "subnets": {
+          "default": {
+            "a": "10.0.1.0/24",
+            "b": "10.0.2.0/24"
+          }
+        }
+      }
+    }
+  }
+}
