@@ -1,0 +1,331 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.8",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_eip.app",
+          "mode": "managed",
+          "type": "aws_eip",
+          "name": "app",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_instance.mixed",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "mixed",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_instance.via_local",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "via_local",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_instance.with_depends_on",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "with_depends_on",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_subnet.main",
+          "mode": "managed",
+          "type": "aws_subnet",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        },
+        {
+          "address": "aws_vpc.main",
+          "mode": "managed",
+          "type": "aws_vpc",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {}
+        }
+      ],
+      "child_modules": [
+        {
+          "address": "module.app",
+          "resources": [
+            {
+              "address": "module.app.aws_network_interface.this",
+              "mode": "managed",
+              "type": "aws_network_interface",
+              "name": "this",
+              "provider_name": "registry.terraform.io/hashicorp/aws",
+              "schema_version": 0,
+              "values": {}
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_eip.app",
+      "mode": "managed",
+      "type": "aws_eip",
+      "name": "app",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_instance.mixed",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "mixed",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_instance.via_local",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "via_local",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_instance.with_depends_on",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "with_depends_on",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_subnet.main",
+      "mode": "managed",
+      "type": "aws_subnet",
+      "name": "main",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "aws_vpc.main",
+      "mode": "managed",
+      "type": "aws_vpc",
+      "name": "main",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    },
+    {
+      "address": "module.app.aws_network_interface.this",
+      "module_address": "module.app",
+      "mode": "managed",
+      "type": "aws_network_interface",
+      "name": "this",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "aws": {
+        "name": "aws",
+        "full_name": "registry.terraform.io/hashicorp/aws"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_vpc.main",
+          "mode": "managed",
+          "type": "aws_vpc",
+          "name": "main",
+          "provider_config_key": "aws",
+          "expressions": {
+            "cidr_block": {
+              "constant_value": "10.0.0.0/16"
+            },
+            "tags": {
+              "references": [
+                "local.tags"
+              ]
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "aws_subnet.main",
+          "mode": "managed",
+          "type": "aws_subnet",
+          "name": "main",
+          "provider_config_key": "aws",
+          "expressions": {
+            "vpc_id": {
+              "references": [
+                "aws_vpc.main.id",
+                "aws_vpc.main"
+              ]
+            },
+            "tags": {
+              "references": [
+                "local.tags"
+              ]
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "aws_instance.via_local",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "via_local",
+          "provider_config_key": "aws",
+          "expressions": {
+            "subnet_id": {
+              "references": [
+                "local.subnet_id"
+              ]
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "aws_instance.mixed",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "mixed",
+          "provider_config_key": "aws",
+          "expressions": {
+            "subnet_id": {
+              "references": [
+                "aws_subnet.main.id",
+                "aws_subnet.main"
+              ]
+            },
+            "tags": {
+              "references": [
+                "local.prefix"
+              ]
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "aws_instance.with_depends_on",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "with_depends_on",
+          "provider_config_key": "aws",
+          "expressions": {
+            "subnet_id": {
+              "references": [
+                "local.subnet_id"
+              ]
+            }
+          },
+          "schema_version": 0,
+          "depends_on": [
+            "aws_subnet.main"
+          ]
+        },
+        {
+          "address": "aws_eip.app",
+          "mode": "managed",
+          "type": "aws_eip",
+          "name": "app",
+          "provider_config_key": "aws",
+          "expressions": {
+            "network_interface": {
+              "references": [
+                "module.app.eni_id",
+                "module.app"
+              ]
+            }
+          },
+          "schema_version": 0
+        }
+      ],
+      "module_calls": {
+        "app": {
+          "source": "./modules/app",
+          "expressions": {
+            "subnet_id": {
+              "references": [
+                "local.subnet_id"
+              ]
+            }
+          },
+          "module": {
+            "outputs": {
+              "eni_id": {
+                "expression": {
+                  "references": [
+                    "local.eni_id"
+                  ]
+                }
+              }
+            },
+            "resources": [
+              {
+                "address": "aws_network_interface.this",
+                "mode": "managed",
+                "type": "aws_network_interface",
+                "name": "this",
+                "provider_config_key": "aws",
+                "expressions": {
+                  "subnet_id": {
+                    "references": [
+                      "var.subnet_id"
+                    ]
+                  }
+                },
+                "schema_version": 0
+              }
+            ],
+            "variables": {
+              "subnet_id": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}

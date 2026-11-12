@@ -39,6 +39,16 @@ class PlanParser:
             for change in plan.get("resource_changes") or []
             if change.get("address") not in known
         ]
+        # Los data sources que se leen durante el plan solo están en prior_state.
+        known = {r.get("address") for r in resources}
+        prior = ((plan.get("prior_state") or {}).get("values") or {}).get(
+            "root_module"
+        ) or {}
+        resources += [
+            data
+            for data in self.extract_resources(prior)
+            if data.get("mode") == "data" and data.get("address") not in known
+        ]
         try:
             for raw in resources:
                 graph.add_resource(self._to_resource(raw, actions))

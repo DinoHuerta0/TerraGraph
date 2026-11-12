@@ -1,0 +1,60 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.8",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_s3_bucket.logs",
+          "mode": "managed",
+          "type": "aws_s3_bucket",
+          "name": "logs",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {
+            "bucket": "terragraph-logs"
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_s3_bucket.logs",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "logs",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ]
+      }
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "aws": {
+        "name": "aws",
+        "full_name": "registry.terraform.io/hashicorp/aws"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_s3_bucket.logs",
+          "mode": "managed",
+          "type": "aws_s3_bucket",
+          "name": "logs",
+          "provider_config_key": "aws",
+          "expressions": {
+            "bucket": {
+              "constant_value": "terragraph-logs"
+            }
+          },
+          "schema_version": 0
+        }
+      ]
+    }
+  }
+}
