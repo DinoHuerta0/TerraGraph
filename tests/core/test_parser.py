@@ -218,3 +218,40 @@ def test_invalid_plan_raises(content):
 )
 def test_normalize_address(reference, expected):
     assert PlanParser().normalize_address(reference) == expected
+
+
+def test_resource_without_required_field_raises(plan):
+    del plan["planned_values"]["root_module"]["resources"][0]["type"]
+    with pytest.raises(PlanParseError, match="type"):
+        PlanParser().parse(plan)
+
+
+@pytest.mark.parametrize(
+    "reference", ["module.missing.vpc_id", "module.net.missing_output"]
+)
+def test_unknown_module_or_output_adds_no_edge(plan, reference):
+    security_group = plan["configuration"]["root_module"]["resources"][1]
+    security_group["expressions"]["description"] = refs(reference)
+    graph = PlanParser().parse(plan)
+    assert graph.dependencies_of("aws_security_group.web") == [
+        "module.net.aws_vpc.main"
+    ]
+
+
+def test_references_inside_nested_blocks():
+    # Los bloques anidados (ingress, ebs_block_device…) llegan como listas de objetos.
+    resource = config(
+        "aws_security_group",
+        "web",
+        {
+            "ingress": [
+                {
+                    "security_groups": refs(
+                        "aws_security_group.lb.id", "aws_security_group.lb"
+                    )
+                },
+                {"cidr_blocks": {"constant_value": ["0.0.0.0/0"]}},
+            ]
+        },
+    )
+    assert PlanParser().extract_references(resource) == ["aws_security_group.lb.id"]
