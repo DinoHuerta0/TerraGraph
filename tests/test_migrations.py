@@ -13,7 +13,7 @@ MIGRATIONS = Path(__file__).resolve().parent.parent / "migrations"
 @pytest.fixture
 def connection():
     # SQLite en memoria: revisa las migraciones sin Postgres. Contra Postgres
-    # real se corren en CI con el #15.
+    # real, CI corre `alembic upgrade head` antes de las pruebas.
     engine = create_engine("sqlite://")
     with engine.begin() as connection:
         yield connection

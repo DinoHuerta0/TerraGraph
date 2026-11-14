@@ -14,7 +14,7 @@ PLAN = {"format_version": "1.2", "planned_values": {"root_module": {}}}
 @pytest.fixture
 def session():
     # SQLite en memoria: prueba el modelo sin Postgres. Las pruebas contra
-    # Postgres real llegan con el repositorio (#15).
+    # Postgres real están en tests/integration/.
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     with Session(engine) as session:
