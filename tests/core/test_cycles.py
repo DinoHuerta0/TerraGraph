@@ -1,27 +1,5 @@
 from app.core.cycles import CycleDetector
-from app.core.graph import Resource, ResourceGraph
-
-A = "null_resource.a"
-B = "null_resource.b"
-C = "null_resource.c"
-D = "null_resource.d"
-E = "null_resource.e"
-
-
-def make_graph(*edges: tuple[str, str]) -> ResourceGraph:
-    """Crea un grafo a partir de aristas (origen, destino) = "origen depende de destino"."""
-    graph = ResourceGraph()
-    for address in sorted({address for edge in edges for address in edge}):
-        type_, name = address.split(".")
-        graph.add_resource(
-            Resource(
-                address=address, type=type_, name=name, provider="null", action="create"
-            )
-        )
-    for source, target in edges:
-        graph.add_dependency(source, target)
-    return graph
-
+from tests.core.helpers import A, B, C, D, E, make_graph
 
 detector = CycleDetector()
 
