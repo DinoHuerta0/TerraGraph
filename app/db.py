@@ -1,9 +1,10 @@
 """Conexión a PostgreSQL con SQLAlchemy."""
 
 import os
+from collections.abc import Iterator
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 # Coincide con el Postgres de docker/docker-compose.yml; en producción llega DATABASE_URL.
 LOCAL_DATABASE_URL = (
@@ -31,3 +32,12 @@ class Base(DeclarativeBase):
 # create_engine no se conecta todavía: la conexión se abre en la primera consulta.
 engine = create_engine(database_url(), pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def get_session() -> Iterator[Session]:
+    """Una sesión por petición HTTP; se cierra al terminar de responder.
+
+    Los routers la reciben con `Depends(get_session)`.
+    """
+    with SessionLocal() as session:
+        yield session
