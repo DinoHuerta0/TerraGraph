@@ -1,0 +1,14 @@
+# Contexto del build de docker/Dockerfile. Docker usa este archivo en lugar de un
+# .dockerignore en la raíz porque está junto al Dockerfile y se llama igual.
+#
+# Lista blanca: se excluye todo y solo se permite lo que la imagen necesita.
+# Así quedan fuera las pruebas, .venv, cachés, docs, .git y, sobre todo, .env.
+*
+!requirements.txt
+!alembic.ini
+!app/
+!migrations/
+
+# Cachés de Python que pueda haber dentro de las carpetas permitidas.
+**/__pycache__
+**/*.pyc
