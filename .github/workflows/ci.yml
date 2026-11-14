@@ -52,4 +52,6 @@ jobs:
           cache-dependency-path: requirements-dev.txt
       - run: pip install -r requirements-dev.txt
       - run: alembic upgrade head
-      - run: python -m pytest -v --cov=app
+      # Falla si alguna prueba falla o si la cobertura de app/ baja de 80 %.
+      # term-missing muestra en el log las líneas que no cubre ninguna prueba.
+      - run: python -m pytest -v --cov=app --cov-report=term-missing --cov-fail-under=80
