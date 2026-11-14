@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 
+from app.monitoring import init_sentry
 from app.routers import analyses, health
+
+# Antes de crear la app, para que Sentry instrumente FastAPI desde el inicio.
+init_sentry()
 
 app = FastAPI(title="TerraGraph")
 app.include_router(health.router)
