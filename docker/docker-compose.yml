@@ -1,0 +1,25 @@
+# Postgres local para desarrollo. Uso, desde la raíz del repo:
+#   docker compose -f docker/docker-compose.yml up -d
+# En producción la base vive en Neon; este contenedor es solo para trabajar en local.
+# Nombre fijo: si no, Compose usaría el de la carpeta ("docker").
+name: terragraph
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: terragraph
+      POSTGRES_PASSWORD: terragraph
+      POSTGRES_DB: terragraph
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U terragraph -d terragraph"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
