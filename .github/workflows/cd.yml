@@ -1,0 +1,25 @@
+name: CD
+
+# Corre cuando un PR se mezcla a main. workflow_dispatch permite lanzarlo a
+# mano desde la pestaña Actions para probar las credenciales.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      # Por ahora solo comprueba que las credenciales de Docker Hub funcionan.
+      # El build y el push de la imagen se agregan en el issue 22.
+      # El usuario es una variable (vars) y no un secreto: si fuera secreto,
+      # GitHub lo taparía con *** en los logs, incluido el nombre de la imagen.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
