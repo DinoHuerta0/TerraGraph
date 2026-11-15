@@ -3,6 +3,9 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  # cd.yml llama a este mismo workflow para correr lint y pruebas antes de
+  # publicar la imagen, sin copiar los jobs.
+  workflow_call:
 
 permissions:
   contents: read
@@ -55,3 +58,24 @@ jobs:
       # Falla si alguna prueba falla o si la cobertura de app/ baja de 80 %.
       # term-missing muestra en el log las líneas que no cubre ninguna prueba.
       - run: python -m pytest -v --cov=app --cov-report=term-missing --cov-fail-under=80
+
+  # Comprueba que la imagen se construye, pero no la publica. Cuando cd.yml
+  # llama a este workflow el evento es push, así que este job se salta y la
+  # imagen se construye una sola vez, en cd.yml.
+  build:
+    if: github.event_name == 'pull_request'
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v4
+      - name: Build image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          # Caché de capas en GitHub Actions: si requirements.txt no cambia,
+          # no se vuelven a instalar las dependencias.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

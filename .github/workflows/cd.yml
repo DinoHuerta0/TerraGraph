@@ -1,21 +1,51 @@
 name: CD
 
-# Corre cuando un PR se mezcla a main. workflow_dispatch permite lanzarlo a
-# mano desde la pestaña Actions para probar las credenciales.
+# Corre cuando un PR se mezcla a main y cuando se sube un tag de versión
+# (vX.Y.Z). workflow_dispatch permite lanzarlo a mano desde la pestaña Actions.
 on:
   push:
     branches: [main]
+    tags: ["v*.*.*"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Un solo despliegue a la vez por rama o tag: si dos merges llegan seguidos,
+# el segundo espera y `latest` siempre termina apuntando al último commit.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # Lint y pruebas: los mismos jobs del CI, reutilizados.
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   docker:
+    needs: ci
+    # Lanzado a mano desde otra rama no habría etiquetas que publicar.
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      # Por ahora solo comprueba que las credenciales de Docker Hub funcionan.
-      # El build y el push de la imagen se agregan en el issue 22.
+      - uses: actions/checkout@v5
+
+      # Calcula las etiquetas según lo que disparó el workflow:
+      #   merge a main -> sha-<commit> y latest
+      #   tag v1.2.3   -> 1.2.3
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ vars.DOCKERHUB_USERNAME }}/terragraph
+          # Sin esto, un tag de versión también movería `latest`; aquí
+          # `latest` es solo la última versión de main.
+          flavor: latest=false
+          tags: |
+            type=sha,prefix=sha-,format=long,enable={{is_default_branch}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+
       # El usuario es una variable (vars) y no un secreto: si fuera secreto,
       # GitHub lo taparía con *** en los logs, incluido el nombre de la imagen.
       - name: Login to Docker Hub
@@ -23,3 +53,16 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
