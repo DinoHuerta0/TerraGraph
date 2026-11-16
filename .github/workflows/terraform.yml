@@ -1,0 +1,122 @@
+name: Terraform
+
+# Workflow reutilizable: lo llaman infra-up.yml (apply) e infra-down.yml
+# (destroy). Aquí viven una sola vez las credenciales, las variables de
+# Terraform y el init, para no copiarlos en los dos workflows.
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: "apply crea o actualiza la infraestructura; destroy la elimina."
+        required: true
+        type: string
+    outputs:
+      domain:
+        description: "Dominio de DuckDNS de la aplicación (solo con apply)."
+        value: ${{ jobs.terraform.outputs.domain }}
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # infra-up e infra-down comparten este grupo: si se lanzan seguidos, el
+    # segundo espera a que termine el primero en lugar de pelear por el estado.
+    # No se cancela el que va corriendo porque dejaría la infraestructura a medias.
+    concurrency:
+      group: terraform-state
+      cancel-in-progress: false
+    defaults:
+      run:
+        working-directory: terraform
+    outputs:
+      domain: ${{ steps.outputs.outputs.domain }}
+    env:
+      # Credenciales temporales del laboratorio de AWS. Vencen al cerrar la
+      # sesión, así que se actualizan en los secretos al iniciar cada una.
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_REGION: us-east-1
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      # Sin esto Terraform se quedaría esperando a que alguien escriba un valor.
+      TF_INPUT: "false"
+      # Quita de la salida los consejos pensados para quien lo corre a mano.
+      TF_IN_AUTOMATION: "true"
+      # Variables de Terraform (variables.tf). Las que son secretas Terraform
+      # las marca como sensitive y no las muestra en el plan ni en los logs.
+      TF_VAR_dockerhub_username: ${{ vars.DOCKERHUB_USERNAME }}
+      TF_VAR_duckdns_domain: ${{ vars.DUCKDNS_DOMAIN }}
+      TF_VAR_duckdns_token: ${{ secrets.DUCKDNS_TOKEN }}
+      TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
+      TF_VAR_sentry_dsn: ${{ secrets.SENTRY_DSN }}
+    steps:
+      - name: Check command
+        env:
+          COMMAND: ${{ inputs.command }}
+        run: |
+          if [ "$COMMAND" != "apply" ] && [ "$COMMAND" != "destroy" ]; then
+            echo "::error::command debe ser apply o destroy (llegó: $COMMAND)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v5
+
+      # La misma versión mínima que pide versions.tf, sin pasar a una 2.x.
+      # terraform_wrapper: false deja la salida de `terraform output` tal cual,
+      # sin las líneas extra que agrega el wrapper de la acción.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "^1.11"
+          terraform_wrapper: false
+
+      # Falla rápido y con un mensaje claro si las credenciales del laboratorio
+      # vencieron, en lugar de un error largo a mitad del plan.
+      - name: Check AWS credentials
+        run: |
+          if ! aws sts get-caller-identity > /dev/null; then
+            echo "::error::Las credenciales de AWS no son válidas o vencieron. Copia las del laboratorio a los secretos AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY y AWS_SESSION_TOKEN."
+            exit 1
+          fi
+
+      - name: Terraform init
+        run: terraform init -backend-config="bucket=$TF_STATE_BUCKET"
+
+      # El plan se guarda en un archivo y se aplica ese mismo archivo: lo que
+      # aparece en el log es exactamente lo que se ejecuta. Con destroy, el plan
+      # lleva -destroy y muestra lo que se va a borrar.
+      - name: Terraform plan
+        env:
+          COMMAND: ${{ inputs.command }}
+        run: |
+          if [ "$COMMAND" = "destroy" ]; then
+            terraform plan -destroy -out=tfplan
+          else
+            terraform plan -out=tfplan
+          fi
+
+      - name: Terraform apply
+        run: terraform apply tfplan
+
+      # Solo después de crear: la IP y el dominio quedan en el resumen del run y
+      # el dominio pasa al job que espera a la aplicación.
+      - name: Outputs
+        id: outputs
+        if: inputs.command == 'apply'
+        run: |
+          echo "domain=$(terraform output -raw domain)" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Infraestructura creada"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Aplicación | $(terraform output -raw app_url) |"
+            echo "| IP pública | $(terraform output -raw public_ip) |"
+            echo "| SSH | \`$(terraform output -raw ssh_command)\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Summary
+        if: inputs.command == 'destroy'
+        run: echo "## Infraestructura destruida" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,46 @@
+name: infra-up
+
+# Se lanza a mano desde la pestaña Actions al iniciar una sesión del
+# laboratorio de AWS: crea la red y la instancia con k3s y la aplicación.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    uses: ./.github/workflows/terraform.yml
+    with:
+      command: apply
+    # El workflow reutilizable necesita los secretos de AWS, Neon, DuckDNS y
+    # Sentry; inherit le pasa los del repositorio sin listarlos aquí otra vez.
+    secrets: inherit
+
+  # terraform apply termina en cuanto existe la instancia, pero el user_data
+  # todavía tarda unos minutos en instalar k3s, bajar la imagen y correr las
+  # migraciones. Este job espera a que /health responda por el dominio, así el
+  # run solo sale en verde cuando la aplicación de verdad está disponible.
+  wait-for-app:
+    needs: terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Wait for /health
+        env:
+          DOMAIN: ${{ needs.terraform.outputs.domain }}
+        run: |
+          URL="http://$DOMAIN/health"
+          # 60 intentos cada 15 s = 15 minutos como máximo.
+          for attempt in $(seq 1 60); do
+            if curl -sf --max-time 5 "$URL"; then
+              echo
+              echo "La aplicación responde en $URL"
+              echo "La aplicación responde en http://$DOMAIN" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Intento $attempt: todavía no responde, se reintenta en 15 s"
+            sleep 15
+          done
+          echo "::error::$URL no respondió en 15 minutos. Revisa /var/log/cloud-init-output.log en la instancia (comando SSH en el resumen)."
+          exit 1

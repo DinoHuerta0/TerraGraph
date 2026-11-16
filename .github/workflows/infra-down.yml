@@ -1,0 +1,39 @@
+name: infra-down
+
+# Se lanza a mano desde la pestaña Actions al terminar una sesión: elimina todo
+# lo que consume créditos (VPC e instancia). El bucket del estado, Neon, DuckDNS
+# y Docker Hub no los maneja Terraform y se quedan.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Escribe "destroy" para confirmar'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # Evita borrar la infraestructura por un clic equivocado en el botón de
+  # Run workflow: si no se escribió "destroy", el run falla y no toca nada.
+  confirm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "destroy" ]; then
+            echo "::error::Confirmación incorrecta: escribe destroy para eliminar la infraestructura."
+            exit 1
+          fi
+
+  terraform:
+    needs: confirm
+    uses: ./.github/workflows/terraform.yml
+    with:
+      command: destroy
+    # destroy también necesita las variables sin valor por defecto
+    # (variables.tf), aunque no las use para crear nada.
+    secrets: inherit
