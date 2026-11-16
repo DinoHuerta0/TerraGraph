@@ -59,12 +59,23 @@ jobs:
       # term-missing muestra en el log las líneas que no cubre ninguna prueba.
       - run: python -m pytest -v --cov=app --cov-report=term-missing --cov-fail-under=80
 
+  # Pruebas del JavaScript de la página (HistoryStore) con el runner que trae
+  # Node, sin package.json ni dependencias.
+  test-js:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - run: node --test "tests/js/*.test.js"
+
   # Comprueba que la imagen se construye, pero no la publica. Cuando cd.yml
   # llama a este workflow el evento es push, así que este job se salta y la
   # imagen se construye una sola vez, en cd.yml.
   build:
     if: github.event_name == 'pull_request'
-    needs: [lint, test]
+    needs: [lint, test, test-js]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
