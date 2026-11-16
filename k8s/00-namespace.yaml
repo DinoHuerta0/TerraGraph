@@ -1,0 +1,8 @@
+# Namespace de la aplicación. El user_data ya lo crea antes del Secret; este
+# archivo lo deja declarado en el repo y permite aplicar k8s/ en un clúster nuevo.
+# Los archivos llevan número porque `kubectl apply -f k8s/` los aplica en orden
+# alfabético y el namespace tiene que existir antes que lo demás.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: terragraph
