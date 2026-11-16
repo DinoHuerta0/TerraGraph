@@ -1,0 +1,117 @@
+# Deployment de TerraGraph: 2 réplicas de la API, con migraciones antes de arrancar.
+#
+# Este archivo es una plantilla de Terraform (templatefile en compute.tf):
+# $${image} se reemplaza por <usuario de Docker Hub>/terragraph:latest. El
+# despliegue (issue #28) cambia después la imagen a sha-<commit> con
+# `kubectl set image`.
+#
+# El Secret `terragraph` (DATABASE_URL y SENTRY_DSN) no está en el repo: lo crea
+# el user_data con los valores sensibles de Terraform.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: terragraph
+  namespace: terragraph
+  labels:
+    app: terragraph
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: terragraph
+  # Rolling update: levanta un pod nuevo y solo baja uno viejo cuando el nuevo
+  # ya pasó la readiness probe. Nunca hay menos de 2 pods atendiendo.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: terragraph
+    spec:
+      # Mismo UID y GID que el usuario del Dockerfile. Si la imagen intentara
+      # correr como root, Kubernetes no arrancaría el pod.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Corre antes que la app, con la misma imagen. Si las migraciones fallan,
+      # el pod no arranca y el rollout se detiene sin tumbar la versión anterior.
+      # Con 2 réplicas los dos initContainers pueden correr a la vez; Alembic
+      # aplica cada migración en una transacción, así que si chocan, uno falla,
+      # Kubernetes lo reintenta y a la segunda ya no hay nada que aplicar.
+      initContainers:
+        - name: migrations
+          image: ${image}
+          command: ["alembic", "upgrade", "head"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: terragraph
+                  key: DATABASE_URL
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+      containers:
+        - name: api
+          image: ${image}
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: terragraph
+                  key: DATABASE_URL
+            # optional: si la llave no existe, el pod arranca sin monitoreo.
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: terragraph
+                  key: SENTRY_DSN
+                  optional: true
+            - name: SENTRY_ENVIRONMENT
+              value: production
+
+          # Readiness: mientras falle, el Service no le manda tráfico al pod.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          # Liveness: si falla 3 veces seguidas, Kubernetes reinicia el contenedor.
+          # Empieza más tarde que la readiness para no reiniciar un pod que solo
+          # está tardando en arrancar.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # La instancia es una t3.small (2 GB) que también corre k3s y Traefik.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

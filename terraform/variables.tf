@@ -46,6 +46,11 @@ variable "duckdns_domain" {
   }
 }
 
+variable "dockerhub_username" {
+  description = "Usuario de Docker Hub; la imagen es <usuario>/terragraph."
+  type        = string
+}
+
 # Las variables sensitive no se muestran en el plan ni en los logs. En GitHub
 # Actions llegan como TF_VAR_<nombre> desde los secretos del repositorio.
 variable "duckdns_token" {

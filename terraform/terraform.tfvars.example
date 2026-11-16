@@ -2,6 +2,9 @@
 # terraform.tfvars y llénalo; .gitignore ignora *.tfvars, así que no se sube.
 # En GitHub Actions estos valores llegan como TF_VAR_<nombre> desde los secretos.
 
+# El mismo valor que la variable DOCKERHUB_USERNAME de GitHub.
+dockerhub_username = "tu-usuario"
+
 duckdns_domain = "tu-subdominio"
 duckdns_token  = "00000000-0000-0000-0000-000000000000"
 

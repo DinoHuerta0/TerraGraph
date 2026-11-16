@@ -21,13 +21,18 @@ data "aws_ami" "ubuntu" {
 }
 
 locals {
-  # Manifiestos de Kubernetes del issue #26, como { "archivo.yaml" = contenido }.
-  # Mientras la carpeta k8s/ no exista, fileset devuelve un conjunto vacío y el
-  # user_data solo crea el namespace y el Secret.
+  # Imagen con la que arranca el Deployment. El despliegue (issue #28) la cambia
+  # después a sha-<commit>.
+  image = "${var.dockerhub_username}/terragraph:latest"
+
+  # Manifiestos de Kubernetes de k8s/, como { "archivo.yaml" = contenido }. Se
+  # leen como plantillas para poner la imagen; los que no usan ${image} quedan
+  # igual. Si la carpeta no tuviera .yaml, el user_data solo crearía el
+  # namespace y el Secret.
   k8s_dir = "${path.module}/../k8s"
   manifests = {
     for name in fileset(local.k8s_dir, "*.yaml") :
-    name => file("${local.k8s_dir}/${name}")
+    name => templatefile("${local.k8s_dir}/${name}", { image = local.image })
   }
 }
 
