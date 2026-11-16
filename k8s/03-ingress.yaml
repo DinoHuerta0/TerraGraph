@@ -1,0 +1,20 @@
+# Entrada desde internet por el puerto 80, con el Traefik que trae k3s.
+# No lleva `host`, así que responde tanto por el dominio de DuckDNS como por la
+# IP pública.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: terragraph
+  namespace: terragraph
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: terragraph
+                port:
+                  name: http

@@ -1,0 +1,16 @@
+# Service interno (ClusterIP): un nombre y una IP fijos dentro del clúster que
+# reparten el tráfico entre los pods listos. No se expone a internet; para eso
+# está el Ingress.
+apiVersion: v1
+kind: Service
+metadata:
+  name: terragraph
+  namespace: terragraph
+spec:
+  type: ClusterIP
+  selector:
+    app: terragraph
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
