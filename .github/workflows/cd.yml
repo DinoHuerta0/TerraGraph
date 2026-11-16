@@ -66,3 +66,109 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Despliegue: cambia la imagen del Deployment a la que se acaba de publicar y
+  # espera a que el rolling update termine. Solo en merges a main, porque la
+  # etiqueta sha-<commit> solo se publica ahí; un tag de versión publica la
+  # imagen pero no la despliega.
+  #
+  # No usa credenciales de AWS: entra por SSH con el nombre de DuckDNS y la
+  # llave del proyecto (secreto EC2_SSH_KEY).
+  deploy:
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      HOST: ${{ vars.DUCKDNS_DOMAIN }}.duckdns.org
+      IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/terragraph:sha-${{ github.sha }}
+    steps:
+      # La infraestructura solo existe durante las sesiones del laboratorio. Si
+      # está apagada, el puerto 22 no responde y el despliegue se omite con un
+      # aviso: el run sale en verde y la imagen queda publicada para la próxima
+      # vez (infra-up arranca con `latest`, que ya apunta a este commit).
+      - name: Check instance
+        id: check
+        run: |
+          if timeout 10 bash -c "</dev/tcp/$HOST/22" 2>/dev/null; then
+            echo "up=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "up=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::$HOST no responde en el puerto 22: la infraestructura está apagada y no se despliega. La imagen $IMAGE ya está en Docker Hub."
+            echo "## Despliegue omitido: la infraestructura está apagada" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # La llave privada se escribe en un archivo que solo puede leer el runner.
+      # La llave del servidor (host key) cambia cada vez que se recrea la
+      # instancia, así que no se puede guardar en el repo: se lee aquí con
+      # ssh-keyscan y ssh solo acepta esa, en lugar de desactivar la revisión.
+      - name: Set up SSH
+        if: steps.check.outputs.up == 'true'
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/terragraph
+          chmod 600 ~/.ssh/terragraph
+          if ! ssh-keyscan -T 10 -t ed25519 "$HOST" > ~/.ssh/known_hosts 2>/dev/null || [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::No se pudo leer la llave del servidor de $HOST"
+            exit 1
+          fi
+
+      # Todo corre en la instancia, en una sola conexión. `set image` cambia la
+      # imagen del initContainer de migraciones y del contenedor de la API; el
+      # Deployment hace el rolling update (maxUnavailable: 0) y `rollout status`
+      # espera a que los pods nuevos pasen la readiness probe.
+      #
+      # Si el rollout no termina (por ejemplo, fallan las migraciones o la probe),
+      # se muestran los pods para ver el error y `rollout undo` regresa a la
+      # imagen anterior. Los pods viejos nunca dejaron de atender, así que la
+      # aplicación sigue en línea y el job sale en rojo.
+      - name: Deploy
+        if: steps.check.outputs.up == 'true'
+        run: |
+          ssh -i ~/.ssh/terragraph -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
+            "ubuntu@$HOST" bash -s -- "$IMAGE" <<'REMOTE'
+          set -euo pipefail
+          IMAGE="$1"
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          K="kubectl -n terragraph"
+
+          echo "Imagen actual: $($K get deployment terragraph -o jsonpath='{.spec.template.spec.containers[0].image}')"
+          echo "Imagen nueva:  $IMAGE"
+          $K set image deployment/terragraph migrations="$IMAGE" api="$IMAGE"
+
+          if ! $K rollout status deployment/terragraph --timeout=5m; then
+            echo "::error::El rollout no terminó; se regresa a la versión anterior."
+            $K get pods -o wide
+            $K rollout undo deployment/terragraph
+            $K rollout status deployment/terragraph --timeout=3m || true
+            exit 1
+          fi
+          $K get pods -o wide
+          REMOTE
+
+      # Comprobación desde fuera: la misma ruta que usa un usuario (DuckDNS,
+      # Traefik, Ingress y Service), no solo el estado dentro del clúster.
+      - name: Check /health
+        if: steps.check.outputs.up == 'true'
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl -sf --max-time 5 "http://$HOST/health"; then
+              echo
+              {
+                echo "## Desplegado"
+                echo
+                echo "| | |"
+                echo "|---|---|"
+                echo "| Imagen | \`$IMAGE\` |"
+                echo "| Aplicación | http://$HOST |"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Intento $attempt: /health no responde, se reintenta en 10 s"
+            sleep 10
+          done
+          echo "::error::http://$HOST/health no respondió después del despliegue."
+          exit 1
