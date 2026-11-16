@@ -6,6 +6,8 @@
   --delete: #d64545;
   --read: #3d85c6;
   --no-op: #9aa0a6;
+  /* Contorno de los recursos afectados en el radio de impacto (BLAST_COLOR en app.js). */
+  --affected: #e8710a;
   --border: #d9dce1;
   --text-muted: #5f6368;
 }
@@ -170,6 +172,24 @@ button:disabled {
 .swatch.delete { background: var(--delete); }
 .swatch.read { background: var(--read); }
 .swatch.no-op { background: var(--no-op); }
+.swatch.affected { border: 3px solid var(--affected); }
+
+/* Número de recursos afectados por el nodo elegido. */
+.blast-info {
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 4px solid var(--affected);
+  border-radius: 4px;
+  background: #fef3e8;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.blast-info.failed {
+  border-left-color: var(--delete);
+  background: #fdecea;
+  color: #a50e0e;
+}
 
 .summary {
   max-height: calc(70vh + 7rem);

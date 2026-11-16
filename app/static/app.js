@@ -1,6 +1,7 @@
 // Página de TerraGraph: sube un plan, lo dibuja con Cytoscape.js y muestra el
 // orden de creación, los niveles paralelos y los ciclos. Los planes subidos se
-// recuerdan en "Mis análisis" (HistoryStore, en history.js).
+// recuerdan en "Mis análisis" (HistoryStore, en history.js). Al hacer clic en un
+// nodo se resalta su radio de impacto (funciones de blast-radius.js).
 //
 // Un análisis se abre directamente con /?id=<uuid>. Todo el texto que viene del
 // plan se escribe con textContent (nunca innerHTML) para que un nombre o una
@@ -17,6 +18,8 @@ const ACTION_COLORS = {
   read: "#3d85c6",
   "no-op": "#9aa0a6",
 };
+// Contorno de los recursos que se rompen (el mismo que --affected en styles.css).
+const BLAST_COLOR = "#e8710a";
 
 const elements = {
   form: document.getElementById("upload-form"),
@@ -29,6 +32,7 @@ const elements = {
   analysisMeta: document.getElementById("analysis-meta"),
   analysisLink: document.getElementById("analysis-link"),
   graph: document.getElementById("graph"),
+  blastInfo: document.getElementById("blast-info"),
   cyclesBox: document.getElementById("cycles-box"),
   cycles: document.getElementById("cycles"),
   creationOrder: document.getElementById("creation-order"),
@@ -39,6 +43,7 @@ const elements = {
 
 let cy = null; // instancia de Cytoscape del análisis que se está viendo
 let currentId = null; // id del análisis que se está viendo, para marcarlo en el historial
+let blastRequest = 0; // aumenta con cada clic en el grafo; sirve para ignorar respuestas viejas
 
 // Algunos navegadores lanzan un error solo por leer window.localStorage (por
 // ejemplo, con las cookies bloqueadas). En ese caso el historial queda vacío.
@@ -151,6 +156,9 @@ function drawGraph(analysis) {
     container: elements.graph,
     elements: toCytoscapeElements(analysis.graph, analysis.cycles),
     wheelSensitivity: 0.2,
+    // Sin la selección de Cytoscape (que pinta el nodo de azul): el clic solo
+    // muestra el radio de impacto.
+    autounselectify: true,
     style: [
       {
         selector: "node",
@@ -188,9 +196,45 @@ function drawGraph(analysis) {
           "target-arrow-color": "#d64545",
         },
       },
+      // Radio de impacto. Van al final para ganarle a los estilos de arriba.
+      {
+        selector: "node.blast-source",
+        style: {
+          "border-width": 4,
+          "border-color": "#1f2a44",
+          width: 30,
+          height: 30,
+        },
+      },
+      {
+        selector: "node.affected",
+        style: { "border-width": 4, "border-color": BLAST_COLOR },
+      },
+      {
+        selector: "edge.affected",
+        style: {
+          width: 2.5,
+          "line-color": BLAST_COLOR,
+          "target-arrow-color": BLAST_COLOR,
+        },
+      },
+      {
+        selector: ".dimmed",
+        style: { opacity: 0.15 },
+      },
     ],
     layout: graphLayout(analysis),
   });
+
+  // "tap" funciona con el mouse y con pantallas táctiles.
+  cy.on("tap", "node", (event) => showBlastRadius(analysis.id, event.target.id()));
+  cy.on("tap", (event) => {
+    // Clic en el fondo (no en un nodo ni en una arista).
+    if (event.target === cy) {
+      hideBlastRadius();
+    }
+  });
+  hideBlastRadius();
 }
 
 // Separación entre nodos, en píxeles; las direcciones son largas, así que la
@@ -217,6 +261,43 @@ function graphLayout(analysis) {
     });
   });
   return { name: "preset", positions, fit: true, padding: 40 };
+}
+
+// --- Radio de impacto ---
+
+const BLAST_HINT = "Haz clic en un recurso para ver qué se rompe si lo destruyes.";
+
+function setBlastInfo(text, isError = false) {
+  elements.blastInfo.textContent = text;
+  elements.blastInfo.classList.toggle("failed", isError);
+}
+
+async function showBlastRadius(analysisId, address) {
+  // Si se hace clic en otro nodo (o en el fondo) antes de que llegue la
+  // respuesta, esta ya no corresponde a lo que se ve y se ignora.
+  const request = ++blastRequest;
+  try {
+    const result = await requestJson(blastRadiusUrl(analysisId, address));
+    if (request !== blastRequest) {
+      return;
+    }
+    highlightBlastRadius(cy, address, result.affected);
+    setBlastInfo(
+      `${blastRadiusMessage(address, result.affected)} Haz clic en el fondo para quitar el resaltado.`,
+    );
+  } catch (error) {
+    if (request !== blastRequest) {
+      return;
+    }
+    clearBlastRadius(cy);
+    setBlastInfo(error.message, true);
+  }
+}
+
+function hideBlastRadius() {
+  blastRequest++;
+  clearBlastRadius(cy);
+  setBlastInfo(BLAST_HINT);
 }
 
 // --- Resumen ---

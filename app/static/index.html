@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="/static/styles.css">
   <!-- Cytoscape.js 3.34.0 guardado en el repo (vendor/), así la página no depende de un CDN. -->
   <script src="/static/vendor/cytoscape.min.js" defer></script>
-  <!-- history.js va antes que app.js porque app.js usa HistoryStore. -->
+  <!-- history.js y blast-radius.js van antes que app.js porque app.js los usa. -->
   <script src="/static/history.js" defer></script>
+  <script src="/static/blast-radius.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -52,6 +53,7 @@
             · <a id="analysis-link" href="#">Enlace a este análisis</a>
           </p>
         </div>
+        <p id="blast-info" class="blast-info" aria-live="polite"></p>
         <div id="graph" aria-label="Grafo de dependencias"></div>
         <ul class="legend">
           <li><span class="swatch create"></span>create</li>
@@ -60,6 +62,7 @@
           <li><span class="swatch delete"></span>delete</li>
           <li><span class="swatch read"></span>read</li>
           <li><span class="swatch no-op"></span>no-op</li>
+          <li><span class="swatch affected"></span>se rompe</li>
           <li>A → B: A depende de B</li>
         </ul>
       </div>
