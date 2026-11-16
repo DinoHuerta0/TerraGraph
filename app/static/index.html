@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="/static/styles.css">
   <!-- Cytoscape.js 3.34.0 guardado en el repo (vendor/), así la página no depende de un CDN. -->
   <script src="/static/vendor/cytoscape.min.js" defer></script>
+  <!-- history.js va antes que app.js porque app.js usa HistoryStore. -->
+  <script src="/static/history.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -16,21 +18,30 @@
   </header>
 
   <main>
-    <section class="panel">
-      <h2>Subir un plan</h2>
-      <form id="upload-form">
-        <label>
-          Archivo del plan (.json)
-          <input type="file" id="plan-file" accept=".json,application/json" required>
-        </label>
-        <label>
-          Nombre
-          <input type="text" id="plan-name" maxlength="200" required placeholder="Ej. red de producción">
-        </label>
-        <button type="submit" id="upload-button">Analizar</button>
-      </form>
-      <p id="error" class="error" role="alert" hidden></p>
-    </section>
+    <div class="top">
+      <section class="panel">
+        <h2>Subir un plan</h2>
+        <form id="upload-form">
+          <label>
+            Archivo del plan (.json)
+            <input type="file" id="plan-file" accept=".json,application/json" required>
+          </label>
+          <label>
+            Nombre
+            <input type="text" id="plan-name" maxlength="200" required placeholder="Ej. red de producción">
+          </label>
+          <button type="submit" id="upload-button">Analizar</button>
+        </form>
+        <p id="error" class="error" role="alert" hidden></p>
+      </section>
+
+      <section class="panel history-panel" aria-labelledby="history-title">
+        <h2 id="history-title">Mis análisis</h2>
+        <p class="hint">Los planes que subiste desde este navegador. No se guardan en ninguna cuenta.</p>
+        <p id="history-empty" class="hint">Todavía no has subido planes.</p>
+        <ul id="history-list" class="history"></ul>
+      </section>
+    </div>
 
     <section id="result" class="result" hidden>
       <div class="graph-panel">
