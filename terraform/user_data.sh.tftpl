@@ -1,0 +1,94 @@
+#!/bin/bash
+# Script de arranque de la instancia (user_data). cloud-init lo corre como root
+# una sola vez, en el primer arranque. Su salida queda en
+# /var/log/cloud-init-output.log.
+#
+# Es una plantilla de Terraform (templatefile): lo que va entre $${ } lo
+# reemplaza Terraform antes de crear la instancia. Las variables de Bash se
+# escriben sin llaves ($VAR) para que Terraform no las confunda con las suyas.
+set -euo pipefail
+
+# --- 1. DuckDNS ---------------------------------------------------------------
+# El script va en la carpeta per-boot de cloud-init, que lo vuelve a correr en
+# cada arranque: si el laboratorio apaga la instancia y la prende otra vez, la
+# IP pública cambia y el dominio se actualiza solo.
+cat > /var/lib/cloud/scripts/per-boot/duckdns.sh <<'DUCKDNS'
+#!/bin/bash
+set -euo pipefail
+
+# IMDSv2: primero se pide un token y con él se consulta la IP pública.
+TOKEN=$(curl -sf -X PUT http://169.254.169.254/latest/api/token \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+IP=$(curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# DuckDNS responde "OK" o "KO". Se reintenta por si la red todavía no está lista.
+RESPONSE=""
+for attempt in 1 2 3 4 5; do
+  RESPONSE=$(curl -s "https://www.duckdns.org/update?domains=${duckdns_domain}&token=${duckdns_token}&ip=$IP" || true)
+  if [ "$RESPONSE" = "OK" ]; then
+    echo "DuckDNS: ${duckdns_domain}.duckdns.org -> $IP"
+    exit 0
+  fi
+  echo "DuckDNS: intento $attempt falló, se reintenta en 10 s"
+  sleep 10
+done
+echo "DuckDNS: no se pudo actualizar (respuesta: $RESPONSE)" >&2
+exit 1
+DUCKDNS
+# Solo root puede leerlo, porque lleva el token de DuckDNS.
+chmod 700 /var/lib/cloud/scripts/per-boot/duckdns.sh
+
+# En el primer arranque cloud-init ya pasó por la carpeta per-boot antes de
+# llegar a este script, así que se corre a mano. Si falla, se sigue: la app
+# responde por IP aunque el dominio no se haya actualizado.
+/var/lib/cloud/scripts/per-boot/duckdns.sh || echo "Aviso: DuckDNS no se actualizó"
+
+# --- 2. k3s -------------------------------------------------------------------
+# k3s es Kubernetes en un solo binario y ya trae Traefik como Ingress.
+# --write-kubeconfig-mode 644 deja leer el kubeconfig al usuario ubuntu, que es
+# con el que entra el despliegue por SSH (issue #28).
+curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+
+# Espera a que el nodo esté Ready (máximo 5 minutos) antes de crear recursos.
+for attempt in $(seq 1 60); do
+  if kubectl get nodes 2>/dev/null | grep -q " Ready"; then
+    break
+  fi
+  sleep 5
+done
+kubectl get nodes
+
+# --- 3. Namespace y Secret ----------------------------------------------------
+# --dry-run=client -o yaml | kubectl apply: crea el recurso o lo actualiza si ya
+# existe, así el script no falla si se vuelve a correr.
+kubectl create namespace terragraph --dry-run=client -o yaml | kubectl apply -f -
+
+# Los valores se escriben en un archivo temporal (mktemp lo crea con permisos
+# 600) y no en la línea de comandos, donde quedarían en el historial de procesos
+# y donde caracteres como & o ? de la URL de Neon romperían el comando.
+ENV_FILE=$(mktemp)
+cat > "$ENV_FILE" <<'SECRET'
+DATABASE_URL=${database_url}
+SENTRY_DSN=${sentry_dsn}
+SECRET
+kubectl -n terragraph create secret generic terragraph \
+  --from-env-file="$ENV_FILE" --dry-run=client -o yaml | kubectl apply -f -
+rm -f "$ENV_FILE"
+
+# --- 4. Manifiestos -----------------------------------------------------------
+# Terraform mete aquí los .yaml de la carpeta k8s/ del repo (issue #26), así la
+# instancia aplica exactamente la versión con la que se corrió terraform apply.
+%{ if length(manifests) > 0 ~}
+mkdir -p /opt/terragraph/k8s
+%{ for name, content in manifests ~}
+cat > /opt/terragraph/k8s/${name} <<'MANIFEST'
+${content}
+MANIFEST
+%{ endfor ~}
+kubectl apply -f /opt/terragraph/k8s/
+%{ else ~}
+echo "No hay manifiestos en k8s/: solo se crearon el namespace y el Secret."
+%{ endif ~}
+
+echo "TerraGraph: arranque terminado."
