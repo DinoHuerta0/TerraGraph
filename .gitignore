@@ -4,3 +4,11 @@ __pycache__/
 .coverage
 htmlcov/
 .env
+
+# Terraform: proveedores descargados, estado local y valores de variables
+# (pueden tener secretos). .terraform.lock.hcl sí se sube.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
