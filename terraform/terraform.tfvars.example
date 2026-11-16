@@ -1,0 +1,13 @@
+# Valores para correr Terraform desde tu máquina. Copia este archivo a
+# terraform.tfvars y llénalo; .gitignore ignora *.tfvars, así que no se sube.
+# En GitHub Actions estos valores llegan como TF_VAR_<nombre> desde los secretos.
+
+duckdns_domain = "tu-subdominio"
+duckdns_token  = "00000000-0000-0000-0000-000000000000"
+
+# Conexión directa de Neon (sin "-pooler"). Aquí no lleva comillas simples:
+# es un string de Terraform, no una línea de Bash.
+database_url = "postgresql://<usuario>:<contraseña>@<host>.us-east-1.aws.neon.tech/terragraph?sslmode=require&channel_binding=require"
+
+# Opcional. Vacío = sin monitoreo.
+sentry_dsn = ""
