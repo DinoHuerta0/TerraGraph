@@ -1,0 +1,187 @@
+/* Colores por acción: los mismos que usa app.js en el grafo. */
+:root {
+  --create: #2e9e5b;
+  --update: #d4a017;
+  --replace: #8e5cc9;
+  --delete: #d64545;
+  --read: #3d85c6;
+  --no-op: #9aa0a6;
+  --border: #d9dce1;
+  --text-muted: #5f6368;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #202124;
+  background: #f6f7f9;
+}
+
+header {
+  padding: 1rem 1.5rem;
+  background: #1f2a44;
+  color: #fff;
+}
+
+header h1 {
+  margin: 0 0 0.25rem;
+}
+
+header p {
+  margin: 0;
+  opacity: 0.85;
+}
+
+main {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+.panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+h2,
+h3 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+}
+
+label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+input[type="text"] {
+  padding: 0.4rem;
+  min-width: 16rem;
+}
+
+button {
+  padding: 0.5rem 1.25rem;
+  border: 0;
+  border-radius: 6px;
+  background: #1f2a44;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.error {
+  margin: 1rem 0 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #a50e0e;
+}
+
+.result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 1rem;
+}
+
+/* En pantallas angostas, el resumen va debajo del grafo. */
+@media (max-width: 900px) {
+  .result {
+    grid-template-columns: 1fr;
+  }
+}
+
+.graph-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.graph-header h2 {
+  margin-bottom: 0.25rem;
+}
+
+.meta {
+  margin: 0 0 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Cytoscape necesita un contenedor con altura fija. */
+#graph {
+  height: 70vh;
+  min-height: 420px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.swatch {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+}
+
+.swatch.create { background: var(--create); }
+.swatch.update { background: var(--update); }
+.swatch.replace { background: var(--replace); }
+.swatch.delete { background: var(--delete); }
+.swatch.read { background: var(--read); }
+.swatch.no-op { background: var(--no-op); }
+
+.summary {
+  max-height: calc(70vh + 7rem);
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+.summary ol {
+  padding-left: 1.5rem;
+  word-break: break-all;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cycles {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #a50e0e;
+}

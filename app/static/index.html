@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TerraGraph</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <!-- Cytoscape.js 3.34.0 guardado en el repo (vendor/), así la página no depende de un CDN. -->
+  <script src="/static/vendor/cytoscape.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <h1>TerraGraph</h1>
+    <p>Sube el JSON de <code>terraform show -json</code> para ver el grafo de dependencias.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Subir un plan</h2>
+      <form id="upload-form">
+        <label>
+          Archivo del plan (.json)
+          <input type="file" id="plan-file" accept=".json,application/json" required>
+        </label>
+        <label>
+          Nombre
+          <input type="text" id="plan-name" maxlength="200" required placeholder="Ej. red de producción">
+        </label>
+        <button type="submit" id="upload-button">Analizar</button>
+      </form>
+      <p id="error" class="error" role="alert" hidden></p>
+    </section>
+
+    <section id="result" class="result" hidden>
+      <div class="graph-panel">
+        <div class="graph-header">
+          <h2 id="analysis-name"></h2>
+          <p class="meta">
+            <span id="analysis-meta"></span>
+            · <a id="analysis-link" href="#">Enlace a este análisis</a>
+          </p>
+        </div>
+        <div id="graph" aria-label="Grafo de dependencias"></div>
+        <ul class="legend">
+          <li><span class="swatch create"></span>create</li>
+          <li><span class="swatch update"></span>update</li>
+          <li><span class="swatch replace"></span>replace</li>
+          <li><span class="swatch delete"></span>delete</li>
+          <li><span class="swatch read"></span>read</li>
+          <li><span class="swatch no-op"></span>no-op</li>
+          <li>A → B: A depende de B</li>
+        </ul>
+      </div>
+
+      <aside class="panel summary">
+        <div id="cycles-box" class="cycles" hidden>
+          <h3>Ciclos</h3>
+          <p>El plan tiene dependencias circulares, así que no hay un orden de creación válido.</p>
+          <ol id="cycles"></ol>
+        </div>
+        <h3>Orden de creación</h3>
+        <ol id="creation-order"></ol>
+        <h3>Niveles paralelos</h3>
+        <p class="hint">Los recursos de un mismo nivel se pueden crear al mismo tiempo.</p>
+        <ol id="parallel-levels"></ol>
+      </aside>
+    </section>
+  </main>
+</body>
+</html>
