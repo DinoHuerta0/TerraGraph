@@ -42,6 +42,14 @@ main {
   padding: 1rem 1.5rem;
 }
 
+/* Subir un plan y Mis análisis, lado a lado. */
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 1rem;
+  align-items: start;
+}
+
 .panel {
   background: #fff;
   border: 1px solid var(--border);
@@ -102,7 +110,8 @@ button:disabled {
 
 /* En pantallas angostas, el resumen va debajo del grafo. */
 @media (max-width: 900px) {
-  .result {
+  .result,
+  .top {
     grid-template-columns: 1fr;
   }
 }
@@ -184,4 +193,62 @@ button:disabled {
   border-radius: 6px;
   background: #fdecea;
   color: #a50e0e;
+}
+
+.history-panel .hint {
+  margin-top: 0;
+}
+
+.history {
+  max-height: 14rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.history li:last-child {
+  border-bottom: 0;
+}
+
+/* El análisis que se está viendo. */
+.history li.current {
+  background: #eef2fb;
+}
+
+.history .entry {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.history .entry a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history .entry small {
+  color: var(--text-muted);
+}
+
+.history button {
+  padding: 0.2rem 0.6rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.history button:hover {
+  color: var(--delete);
+  border-color: var(--delete);
 }

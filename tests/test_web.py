@@ -39,3 +39,16 @@ def test_cytoscape_is_served_from_the_repo():
     response = client.get("/static/vendor/cytoscape.min.js")
     assert response.status_code == 200
     assert "cytoscape" in response.text
+
+
+def test_index_has_my_analyses_section():
+    page = client.get("/").text
+    assert 'id="history-list"' in page
+    # app.js usa HistoryStore, así que history.js tiene que cargarse antes.
+    assert page.index("/static/history.js") < page.index("/static/app.js")
+
+
+def test_history_script_is_served():
+    response = client.get("/static/history.js")
+    assert response.status_code == 200
+    assert "class HistoryStore" in response.text

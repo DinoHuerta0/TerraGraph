@@ -1,5 +1,6 @@
 // Página de TerraGraph: sube un plan, lo dibuja con Cytoscape.js y muestra el
-// orden de creación, los niveles paralelos y los ciclos.
+// orden de creación, los niveles paralelos y los ciclos. Los planes subidos se
+// recuerdan en "Mis análisis" (HistoryStore, en history.js).
 //
 // Un análisis se abre directamente con /?id=<uuid>. Todo el texto que viene del
 // plan se escribe con textContent (nunca innerHTML) para que un nombre o una
@@ -32,14 +33,37 @@ const elements = {
   cycles: document.getElementById("cycles"),
   creationOrder: document.getElementById("creation-order"),
   parallelLevels: document.getElementById("parallel-levels"),
+  historyList: document.getElementById("history-list"),
+  historyEmpty: document.getElementById("history-empty"),
 };
 
 let cy = null; // instancia de Cytoscape del análisis que se está viendo
+let currentId = null; // id del análisis que se está viendo, para marcarlo en el historial
+
+// Algunos navegadores lanzan un error solo por leer window.localStorage (por
+// ejemplo, con las cookies bloqueadas). En ese caso el historial queda vacío.
+function browserStorage() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+const historyStore = new HistoryStore(browserStorage());
 
 // --- API ---
 
+// Error de la API con su código HTTP, para distinguir un 404 de otros errores.
+class ApiError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
 // Hace la petición y devuelve el JSON; si la API responde con error, lanza un
-// Error con el mensaje de `detail` para mostrarlo tal cual.
+// ApiError con el mensaje de `detail` para mostrarlo tal cual.
 async function requestJson(url, options) {
   let response;
   try {
@@ -49,7 +73,7 @@ async function requestJson(url, options) {
   }
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(errorMessage(response.status, body));
+    throw new ApiError(response.status, errorMessage(response.status, body));
   }
   return body;
 }
@@ -234,7 +258,7 @@ function showAnalysis(analysis) {
   elements.analysisName.textContent = analysis.name;
   const date = new Date(analysis.created_at).toLocaleString();
   elements.analysisMeta.textContent = `${analysis.resource_count} recursos · subido el ${date}`;
-  elements.analysisLink.href = `/?id=${encodeURIComponent(analysis.id)}`;
+  elements.analysisLink.href = analysisUrl(analysis.id);
   showSummary(analysis);
   // El contenedor tiene que estar visible antes de dibujar para que Cytoscape
   // conozca su tamaño.
@@ -242,15 +266,91 @@ function showAnalysis(analysis) {
   drawGraph(analysis);
 }
 
+// --- Mis análisis ---
+
+function renderHistory() {
+  const entries = historyStore.list();
+  elements.historyEmpty.hidden = entries.length > 0;
+  elements.historyList.replaceChildren(...entries.map(historyItem));
+}
+
+function historyItem(entry) {
+  const item = document.createElement("li");
+  if (entry.id === currentId) {
+    item.className = "current";
+  }
+
+  const info = document.createElement("div");
+  info.className = "entry";
+  const link = document.createElement("a");
+  link.href = analysisUrl(entry.id);
+  link.textContent = entry.name;
+  link.title = entry.name;
+  if (entry.id === currentId) {
+    link.setAttribute("aria-current", "page");
+  }
+  // Abre el análisis sin recargar la página; con Ctrl o clic central se abre
+  // en otra pestaña como cualquier enlace.
+  link.addEventListener("click", (event) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    openAnalysis(entry.id);
+  });
+  const date = document.createElement("small");
+  date.textContent = new Date(entry.created_at).toLocaleString();
+  info.append(link, date);
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.textContent = "Quitar";
+  remove.setAttribute("aria-label", `Quitar ${entry.name} de Mis análisis`);
+  // Solo lo quita del historial de este navegador; el análisis sigue en el
+  // servidor y su enlace sigue funcionando.
+  remove.addEventListener("click", () => {
+    historyStore.remove(entry.id);
+    renderHistory();
+  });
+
+  item.append(info, remove);
+  return item;
+}
+
 // --- Flujo de la página ---
+
+function analysisUrl(id) {
+  return `/?id=${encodeURIComponent(id)}`;
+}
+
+// Cambia la URL al análisis (para compartirla o recargar) y lo abre.
+function openAnalysis(id) {
+  history.pushState({ id }, "", analysisUrl(id));
+  loadAnalysis(id);
+}
+
+function setCurrent(id) {
+  currentId = id;
+  renderHistory();
+}
 
 async function loadAnalysis(id) {
   clearError();
+  setCurrent(id);
   try {
     showAnalysis(await fetchAnalysis(id));
   } catch (error) {
     elements.result.hidden = true;
-    showError(error.message);
+    setCurrent(null);
+    if (error.status === 404 && historyStore.has(id)) {
+      // El análisis ya no está en el servidor (por ejemplo, se limpió la base
+      // de datos): se quita del historial para que no vuelva a fallar.
+      historyStore.remove(id);
+      renderHistory();
+      showError("Ese análisis ya no existe, así que se quitó de Mis análisis.");
+    } else {
+      showError(error.message);
+    }
   }
 }
 
@@ -270,8 +370,12 @@ async function onSubmit(event) {
   try {
     const plan = await readPlanFile(elements.file.files[0]);
     const analysis = await createAnalysis(elements.name.value, plan);
+    // Solo se guardan en el historial los planes que se suben aquí, no los
+    // que alguien abre con un enlace compartido.
+    historyStore.add(analysis.id, analysis.name, analysis.created_at);
     // La URL queda con el id para poder compartirla o recargar la página.
-    history.pushState({ id: analysis.id }, "", `/?id=${encodeURIComponent(analysis.id)}`);
+    history.pushState({ id: analysis.id }, "", analysisUrl(analysis.id));
+    setCurrent(analysis.id);
     showAnalysis(analysis);
   } catch (error) {
     showError(error.message);
@@ -296,6 +400,7 @@ function loadFromUrl() {
   } else {
     clearError();
     elements.result.hidden = true;
+    setCurrent(null);
   }
 }
 
