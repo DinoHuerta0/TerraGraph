@@ -53,6 +53,10 @@ jobs:
       TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
       TF_VAR_sentry_dsn: ${{ secrets.SENTRY_DSN }}
     steps:
+      # Va primero: los pasos corren dentro de terraform/ (defaults), y esa
+      # carpeta no existe en el runner hasta que se clona el repo.
+      - uses: actions/checkout@v5
+
       - name: Check command
         env:
           COMMAND: ${{ inputs.command }}
@@ -61,8 +65,6 @@ jobs:
             echo "::error::command debe ser apply o destroy (llegó: $COMMAND)"
             exit 1
           fi
-
-      - uses: actions/checkout@v5
 
       # La misma versión mínima que pide versions.tf, sin pasar a una 2.x.
       # terraform_wrapper: false deja la salida de `terraform output` tal cual,
