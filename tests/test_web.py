@@ -48,6 +48,19 @@ def test_index_has_my_analyses_section():
     assert page.index("/static/history.js") < page.index("/static/app.js")
 
 
+def test_index_loads_blast_radius_before_app():
+    page = client.get("/").text
+    assert 'id="blast-info"' in page
+    # app.js usa las funciones de blast-radius.js.
+    assert page.index("/static/blast-radius.js") < page.index("/static/app.js")
+
+
+def test_blast_radius_script_is_served():
+    response = client.get("/static/blast-radius.js")
+    assert response.status_code == 200
+    assert "function highlightBlastRadius" in response.text
+
+
 def test_history_script_is_served():
     response = client.get("/static/history.js")
     assert response.status_code == 200
