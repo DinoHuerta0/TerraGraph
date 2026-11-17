@@ -1,7 +1,8 @@
 // Página de TerraGraph: sube un plan, lo dibuja con Cytoscape.js y muestra el
 // orden de creación, los niveles paralelos y los ciclos. Los planes subidos se
 // recuerdan en "Mis análisis" (HistoryStore, en history.js). Al hacer clic en un
-// nodo se resalta su radio de impacto (funciones de blast-radius.js).
+// nodo se resalta su radio de impacto (funciones de blast-radius.js) y se
+// muestran sus datos y relaciones en el panel lateral (node-details.js).
 //
 // Un análisis se abre directamente con /?id=<uuid>. Todo el texto que viene del
 // plan se escribe con textContent (nunca innerHTML) para que un nombre o una
@@ -37,6 +38,18 @@ const elements = {
   cycles: document.getElementById("cycles"),
   creationOrder: document.getElementById("creation-order"),
   parallelLevels: document.getElementById("parallel-levels"),
+  summary: document.getElementById("summary"),
+  nodeDetails: document.getElementById("node-details"),
+  nodeAddress: document.getElementById("node-address"),
+  nodeType: document.getElementById("node-type"),
+  nodeName: document.getElementById("node-name"),
+  nodeProvider: document.getElementById("node-provider"),
+  nodeAction: document.getElementById("node-action"),
+  nodeActionSwatch: document.getElementById("node-action-swatch"),
+  dependsOn: document.getElementById("depends-on"),
+  dependsOnCount: document.getElementById("depends-on-count"),
+  dependents: document.getElementById("dependents"),
+  dependentsCount: document.getElementById("dependents-count"),
   historyList: document.getElementById("history-list"),
   historyEmpty: document.getElementById("history-empty"),
 };
@@ -139,7 +152,14 @@ function cycleEdgeKeys(cycles) {
 function toCytoscapeElements(graph, cycles) {
   const inCycle = cycleEdgeKeys(cycles);
   const nodes = graph.nodes.map((node) => ({
-    data: { id: node.address, label: node.address, action: node.action },
+    data: {
+      id: node.address,
+      label: node.address,
+      type: node.type,
+      name: node.name,
+      provider: node.provider,
+      action: node.action,
+    },
   }));
   const edges = graph.edges.map((edge) => ({
     data: { source: edge.source, target: edge.target },
@@ -157,7 +177,7 @@ function drawGraph(analysis) {
     elements: toCytoscapeElements(analysis.graph, analysis.cycles),
     wheelSensitivity: 0.2,
     // Sin la selección de Cytoscape (que pinta el nodo de azul): el clic solo
-    // muestra el radio de impacto.
+    // muestra el radio de impacto y los detalles.
     autounselectify: true,
     style: [
       {
@@ -227,14 +247,34 @@ function drawGraph(analysis) {
   });
 
   // "tap" funciona con el mouse y con pantallas táctiles.
-  cy.on("tap", "node", (event) => showBlastRadius(analysis.id, event.target.id()));
+  cy.on("tap", "node", (event) => selectNode(analysis.id, event.target.id()));
   cy.on("tap", (event) => {
     // Clic en el fondo (no en un nodo ni en una arista).
     if (event.target === cy) {
-      hideBlastRadius();
+      clearSelection();
     }
   });
+  clearSelection();
+}
+
+// --- Selección de un recurso ---
+
+function selectNode(analysisId, address) {
+  showBlastRadius(analysisId, address);
+  showNodeDetails(analysisId, address);
+}
+
+function clearSelection() {
   hideBlastRadius();
+  hideNodeDetails();
+}
+
+// Elegir un recurso desde la lista del panel: además de seleccionarlo, mueve el
+// grafo para que quede al centro, porque en un plan grande puede estar fuera de
+// la vista.
+function goToNode(analysisId, address) {
+  selectNode(analysisId, address);
+  cy.animate({ center: { eles: cy.getElementById(address) } }, { duration: 300 });
 }
 
 // Separación entre nodos, en píxeles; las direcciones son largas, así que la
@@ -265,7 +305,7 @@ function graphLayout(analysis) {
 
 // --- Radio de impacto ---
 
-const BLAST_HINT = "Haz clic en un recurso para ver qué se rompe si lo destruyes.";
+const BLAST_HINT = "Haz clic en un recurso para ver sus relaciones y qué se rompe si lo destruyes.";
 
 function setBlastInfo(text, isError = false) {
   elements.blastInfo.textContent = text;
@@ -298,6 +338,54 @@ function hideBlastRadius() {
   blastRequest++;
   clearBlastRadius(cy);
   setBlastInfo(BLAST_HINT);
+}
+
+// --- Detalles del recurso ---
+
+function showNodeDetails(analysisId, address) {
+  const details = nodeDetails(cy, address);
+  if (!details) {
+    hideNodeDetails();
+    return;
+  }
+  elements.nodeAddress.textContent = details.address;
+  elements.nodeType.textContent = details.type || "—";
+  elements.nodeName.textContent = details.name || "—";
+  elements.nodeProvider.textContent = details.provider || "—";
+  elements.nodeAction.textContent = details.action;
+  elements.nodeActionSwatch.style.background = ACTION_COLORS[details.action] || "#9aa0a6";
+  fillRelations(elements.dependsOn, elements.dependsOnCount, details.dependsOn, analysisId);
+  fillRelations(elements.dependents, elements.dependentsCount, details.dependents, analysisId);
+  elements.nodeDetails.hidden = false;
+  // El panel está arriba del resumen; se sube el scroll para que se vea.
+  elements.summary.scrollTop = 0;
+}
+
+function hideNodeDetails() {
+  elements.nodeDetails.hidden = true;
+}
+
+// Cada relación es un botón que lleva a ese recurso, para recorrer el plan
+// desde el panel.
+function fillRelations(list, count, addresses, analysisId) {
+  count.textContent = addresses.length;
+  list.replaceChildren();
+  if (addresses.length === 0) {
+    const item = document.createElement("li");
+    item.className = "hint";
+    item.textContent = "Ninguno";
+    list.appendChild(item);
+    return;
+  }
+  for (const address of addresses) {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = address;
+    button.addEventListener("click", () => goToNode(analysisId, address));
+    item.appendChild(button);
+    list.appendChild(item);
+  }
 }
 
 // --- Resumen ---

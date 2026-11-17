@@ -65,3 +65,16 @@ def test_history_script_is_served():
     response = client.get("/static/history.js")
     assert response.status_code == 200
     assert "class HistoryStore" in response.text
+
+
+def test_index_loads_node_details_before_app():
+    page = client.get("/").text
+    assert 'id="node-details"' in page
+    # app.js usa nodeDetails de node-details.js.
+    assert page.index("/static/node-details.js") < page.index("/static/app.js")
+
+
+def test_node_details_script_is_served():
+    response = client.get("/static/node-details.js")
+    assert response.status_code == 200
+    assert "function nodeDetails" in response.text
