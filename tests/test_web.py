@@ -78,3 +78,17 @@ def test_node_details_script_is_served():
     response = client.get("/static/node-details.js")
     assert response.status_code == 200
     assert "function nodeDetails" in response.text
+
+
+def test_index_loads_theme_before_the_page_is_drawn():
+    page = client.get("/").text
+    assert 'id="theme-toggle"' in page
+    # theme.js va sin defer y antes de app.js para aplicar el tema desde el inicio.
+    assert '<script src="/static/theme.js"></script>' in page
+    assert page.index("/static/theme.js") < page.index("/static/app.js")
+
+
+def test_theme_script_is_served():
+    response = client.get("/static/theme.js")
+    assert response.status_code == 200
+    assert "function initialTheme" in response.text

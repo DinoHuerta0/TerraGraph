@@ -2,7 +2,8 @@
 // orden de creación, los niveles paralelos y los ciclos. Los planes subidos se
 // recuerdan en "Mis análisis" (HistoryStore, en history.js). Al hacer clic en un
 // nodo se resalta su radio de impacto (funciones de blast-radius.js) y se
-// muestran sus datos y relaciones en el panel lateral (node-details.js).
+// muestran sus datos y relaciones en el panel lateral (node-details.js). El
+// botón del encabezado cambia entre modo claro y oscuro (theme.js).
 //
 // Un análisis se abre directamente con /?id=<uuid>. Todo el texto que viene del
 // plan se escribe con textContent (nunca innerHTML) para que un nombre o una
@@ -21,8 +22,21 @@ const ACTION_COLORS = {
 };
 // Contorno de los recursos que se rompen (el mismo que --affected en styles.css).
 const BLAST_COLOR = "#e8710a";
+// Grosor de las aristas. Son delgadas para que un plan con muchos recursos no se
+// sature; las de un ciclo o del radio de impacto son un poco más gruesas para
+// que resalten. arrowScale encoge la punta de la flecha, que Cytoscape no
+// achica por debajo de un tamaño mínimo aunque la línea sea delgada.
+const EDGE_STYLE = { width: 0.8, highlightWidth: 1.6, arrowScale: 0.7 };
+// Colores del grafo que cambian con el tema (theme.js): el texto de las
+// etiquetas, las aristas y el contorno del recurso elegido. Los colores de las
+// acciones y del radio de impacto se leen bien en los dos.
+const GRAPH_COLORS = {
+  light: { label: "#202124", edge: "#b0b5bd", source: "#1f2a44" },
+  dark: { label: "#e8eaed", edge: "#6b7280", source: "#e8eaed" },
+};
 
 const elements = {
+  themeToggle: document.getElementById("theme-toggle"),
   form: document.getElementById("upload-form"),
   file: document.getElementById("plan-file"),
   name: document.getElementById("plan-name"),
@@ -58,16 +72,8 @@ let cy = null; // instancia de Cytoscape del análisis que se está viendo
 let currentId = null; // id del análisis que se está viendo, para marcarlo en el historial
 let blastRequest = 0; // aumenta con cada clic en el grafo; sirve para ignorar respuestas viejas
 
-// Algunos navegadores lanzan un error solo por leer window.localStorage (por
-// ejemplo, con las cookies bloqueadas). En ese caso el historial queda vacío.
-function browserStorage() {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
+// browserStorage() está en theme.js, que se carga primero. Si localStorage está
+// bloqueado, el historial queda vacío.
 const historyStore = new HistoryStore(browserStorage());
 
 // --- API ---
@@ -179,70 +185,7 @@ function drawGraph(analysis) {
     // Sin la selección de Cytoscape (que pinta el nodo de azul): el clic solo
     // muestra el radio de impacto y los detalles.
     autounselectify: true,
-    style: [
-      {
-        selector: "node",
-        style: {
-          "background-color": (node) => ACTION_COLORS[node.data("action")] || "#9aa0a6",
-          label: "data(label)",
-          "font-size": 10,
-          "text-valign": "bottom",
-          "text-margin-y": 4,
-          "text-wrap": "wrap",
-          "text-max-width": 160,
-          // Las direcciones no tienen espacios: se cortan en cualquier carácter
-          // para que una larga no se salga del contenedor.
-          "text-overflow-wrap": "anywhere",
-          width: 22,
-          height: 22,
-        },
-      },
-      {
-        // La flecha apunta a la dependencia: A -> B significa "A depende de B".
-        selector: "edge",
-        style: {
-          width: 1.5,
-          "line-color": "#b0b5bd",
-          "target-arrow-color": "#b0b5bd",
-          "target-arrow-shape": "triangle",
-          "curve-style": "bezier",
-        },
-      },
-      {
-        selector: "edge.cycle",
-        style: {
-          width: 2.5,
-          "line-color": "#d64545",
-          "target-arrow-color": "#d64545",
-        },
-      },
-      // Radio de impacto. Van al final para ganarle a los estilos de arriba.
-      {
-        selector: "node.blast-source",
-        style: {
-          "border-width": 4,
-          "border-color": "#1f2a44",
-          width: 30,
-          height: 30,
-        },
-      },
-      {
-        selector: "node.affected",
-        style: { "border-width": 4, "border-color": BLAST_COLOR },
-      },
-      {
-        selector: "edge.affected",
-        style: {
-          width: 2.5,
-          "line-color": BLAST_COLOR,
-          "target-arrow-color": BLAST_COLOR,
-        },
-      },
-      {
-        selector: ".dimmed",
-        style: { opacity: 0.15 },
-      },
-    ],
+    style: graphStyle(),
     layout: graphLayout(analysis),
   });
 
@@ -275,6 +218,78 @@ function clearSelection() {
 function goToNode(analysisId, address) {
   selectNode(analysisId, address);
   cy.animate({ center: { eles: cy.getElementById(address) } }, { duration: 300 });
+}
+
+// Estilos del grafo. Dependen del tema (colores de las etiquetas, las aristas y
+// el contorno del recurso elegido), así que se vuelven a calcular al cambiarlo.
+function graphStyle() {
+  const colors = GRAPH_COLORS[currentTheme()];
+  return [
+    {
+      selector: "node",
+      style: {
+        "background-color": (node) => ACTION_COLORS[node.data("action")] || "#9aa0a6",
+        label: "data(label)",
+        color: colors.label,
+        "font-size": 10,
+        "text-valign": "bottom",
+        "text-margin-y": 4,
+        "text-wrap": "wrap",
+        "text-max-width": 160,
+        // Las direcciones no tienen espacios: se cortan en cualquier carácter
+        // para que una larga no se salga del contenedor.
+        "text-overflow-wrap": "anywhere",
+        width: 22,
+        height: 22,
+      },
+    },
+    {
+      // La flecha apunta a la dependencia: A -> B significa "A depende de B".
+      selector: "edge",
+      style: {
+        width: EDGE_STYLE.width,
+        "line-color": colors.edge,
+        "target-arrow-color": colors.edge,
+        "target-arrow-shape": "triangle",
+        "arrow-scale": EDGE_STYLE.arrowScale,
+        "curve-style": "bezier",
+      },
+    },
+    {
+      selector: "edge.cycle",
+      style: {
+        width: EDGE_STYLE.highlightWidth,
+        "line-color": "#d64545",
+        "target-arrow-color": "#d64545",
+      },
+    },
+    // Radio de impacto. Van al final para ganarle a los estilos de arriba.
+    {
+      selector: "node.blast-source",
+      style: {
+        "border-width": 4,
+        "border-color": colors.source,
+        width: 30,
+        height: 30,
+      },
+    },
+    {
+      selector: "node.affected",
+      style: { "border-width": 4, "border-color": BLAST_COLOR },
+    },
+    {
+      selector: "edge.affected",
+      style: {
+        width: EDGE_STYLE.highlightWidth,
+        "line-color": BLAST_COLOR,
+        "target-arrow-color": BLAST_COLOR,
+      },
+    },
+    {
+      selector: ".dimmed",
+      style: { opacity: 0.15 },
+    },
+  ];
 }
 
 // Separación entre nodos, en píxeles; las direcciones son largas, así que la
@@ -486,6 +501,28 @@ function historyItem(entry) {
   return item;
 }
 
+// --- Tema ---
+
+// El tema ya lo aplicó theme.js al cargar; aquí solo se conecta el botón.
+function renderThemeToggle() {
+  const dark = currentTheme() === "dark";
+  elements.themeToggle.textContent = dark ? "Modo claro" : "Modo oscuro";
+  elements.themeToggle.setAttribute("aria-pressed", String(dark));
+}
+
+function toggleTheme() {
+  const theme = otherTheme(currentTheme());
+  applyTheme(theme);
+  saveTheme(browserStorage(), theme);
+  renderThemeToggle();
+  // Cytoscape dibuja en un canvas y no usa styles.css: se le pasan los estilos
+  // con los colores del nuevo tema. Las clases (radio de impacto, ciclos) se
+  // conservan.
+  if (cy) {
+    cy.style(graphStyle());
+  }
+}
+
 // --- Flujo de la página ---
 
 function analysisUrl(id) {
@@ -553,10 +590,11 @@ async function onSubmit(event) {
   }
 }
 
-// Al elegir un archivo, su nombre (sin .json) se usa como nombre si está vacío.
+// Al elegir un archivo, su nombre (sin .json) reemplaza el nombre del plan, para
+// que no se quede el del archivo anterior. Se puede editar después de elegirlo.
 function onFileChange() {
   const file = elements.file.files[0];
-  if (file && !elements.name.value) {
+  if (file) {
     elements.name.value = file.name.replace(/\.json$/i, "");
   }
 }
@@ -575,6 +613,8 @@ function loadFromUrl() {
 
 elements.form.addEventListener("submit", onSubmit);
 elements.file.addEventListener("change", onFileChange);
+elements.themeToggle.addEventListener("click", toggleTheme);
+renderThemeToggle();
 // Botones de atrás y adelante del navegador.
 window.addEventListener("popstate", loadFromUrl);
 loadFromUrl();
