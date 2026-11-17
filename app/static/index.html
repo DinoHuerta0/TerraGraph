@@ -7,9 +7,10 @@
   <link rel="stylesheet" href="/static/styles.css">
   <!-- Cytoscape.js 3.34.0 guardado en el repo (vendor/), así la página no depende de un CDN. -->
   <script src="/static/vendor/cytoscape.min.js" defer></script>
-  <!-- history.js y blast-radius.js van antes que app.js porque app.js los usa. -->
+  <!-- history.js, blast-radius.js y node-details.js van antes que app.js porque app.js los usa. -->
   <script src="/static/history.js" defer></script>
   <script src="/static/blast-radius.js" defer></script>
+  <script src="/static/node-details.js" defer></script>
   <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -67,7 +68,26 @@
         </ul>
       </div>
 
-      <aside class="panel summary">
+      <aside class="panel summary" id="summary">
+        <div id="node-details" class="node-details" hidden>
+          <h3>Recurso seleccionado</h3>
+          <p id="node-address" class="node-address"></p>
+          <dl class="node-props">
+            <dt>Tipo</dt>
+            <dd id="node-type"></dd>
+            <dt>Nombre</dt>
+            <dd id="node-name"></dd>
+            <dt>Proveedor</dt>
+            <dd id="node-provider"></dd>
+            <dt>Acción</dt>
+            <dd><span id="node-action-swatch" class="swatch"></span> <span id="node-action"></span></dd>
+          </dl>
+          <h4>Depende de (<span id="depends-on-count">0</span>)</h4>
+          <ul id="depends-on" class="relations"></ul>
+          <h4>Dependen de él (<span id="dependents-count">0</span>)</h4>
+          <ul id="dependents" class="relations"></ul>
+          <p class="hint">Haz clic en un recurso de la lista para ir a él.</p>
+        </div>
         <div id="cycles-box" class="cycles" hidden>
           <h3>Ciclos</h3>
           <p>El plan tiene dependencias circulares, así que no hay un orden de creación válido.</p>

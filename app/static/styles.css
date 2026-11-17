@@ -272,3 +272,65 @@ button:disabled {
   color: var(--delete);
   border-color: var(--delete);
 }
+
+/* Panel con los datos y las relaciones del recurso elegido. */
+.node-details {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.node-address {
+  margin: 0 0 0.5rem;
+  font-family: ui-monospace, Consolas, monospace;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.node-props {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.node-props dt {
+  color: var(--text-muted);
+}
+
+.node-props dd {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  word-break: break-all;
+}
+
+.node-details h4 {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.relations {
+  max-height: 12rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Botones que parecen enlaces: llevan al recurso en el grafo. */
+.relations button {
+  width: 100%;
+  padding: 0.2rem 0.25rem;
+  background: transparent;
+  color: #1a56c4;
+  text-align: left;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.relations button:hover {
+  background: #eef2fb;
+  text-decoration: underline;
+}
