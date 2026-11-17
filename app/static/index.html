@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TerraGraph</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <!-- Sin defer: aplica el tema guardado antes de dibujar la página, para que no
+       parpadee en blanco al abrirla en modo oscuro. -->
+  <script src="/static/theme.js"></script>
   <!-- Cytoscape.js 3.34.0 guardado en el repo (vendor/), así la página no depende de un CDN. -->
   <script src="/static/vendor/cytoscape.min.js" defer></script>
   <!-- history.js, blast-radius.js y node-details.js van antes que app.js porque app.js los usa. -->
@@ -15,8 +18,12 @@
 </head>
 <body>
   <header>
-    <h1>TerraGraph</h1>
-    <p>Sube el JSON de <code>terraform show -json</code> para ver el grafo de dependencias.</p>
+    <div>
+      <h1>TerraGraph</h1>
+      <p>Sube el JSON de <code>terraform show -json</code> para ver el grafo de dependencias.</p>
+    </div>
+    <!-- El texto y aria-pressed los pone app.js según el tema actual. -->
+    <button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false">Modo oscuro</button>
   </header>
 
   <main>
